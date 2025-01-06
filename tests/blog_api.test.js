@@ -78,6 +78,39 @@ test('there are the right amount of blogs', async () => {
   })
   
 
+  test('blog without title is not added', async () => {
+    const newBlog = {
+      author: 'Missing Title',
+      url: 'https://example.com/missing-title',
+      likes: 5,
+    };
+  
+    await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(400);
+  
+    const blogsAtEnd = await helper.blogsInDb();
+    assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length);
+  });
+  
+  test('blog without url is not added', async () => {
+    const newBlog = {
+      title: 'Missing URL',
+      author: 'Miss Url',
+      likes: 10,
+    };
+  
+    await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(400);
+  
+    const blogsAtEnd = await helper.blogsInDb();
+    assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length);
+  });
+  
+
 after(async () => {
   await mongoose.connection.close()
 })
