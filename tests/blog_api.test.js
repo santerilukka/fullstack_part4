@@ -35,6 +35,27 @@ test('there are the right amount of blogs', async () => {
     })
   })
 
+  test('a valid blog can be added', async () => {
+    const newBlog = {
+      title: 'Async/Await Simplifies Making Async Calls',
+      author: 'John Doe',
+      url: 'https://example.com/async-await',
+      likes: 10,
+    }
+  
+    await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
+  
+    const blogsAtEnd = await helper.blogsInDb()
+    assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length + 1)
+  
+    const titles = blogsAtEnd.map((b) => b.title)
+    assert.ok(titles.includes(newBlog.title))
+  })
+
 after(async () => {
   await mongoose.connection.close()
 })
