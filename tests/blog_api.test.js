@@ -56,6 +56,28 @@ test('there are the right amount of blogs', async () => {
     assert.ok(titles.includes(newBlog.title))
   })
 
+  test('if likes is not given, it defaults to 0', async () => {
+    const newBlog = {
+      title: 'Default likes test',
+      author: 'Dave the Default liker',
+      url: 'https://example.com/default-likes',
+    }
+  
+    const response = await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
+  
+    const addedBlog = response.body;
+    assert.strictEqual(addedBlog.likes, 0)
+  
+    const blogsAtEnd = await helper.blogsInDb();
+    const savedBlog = blogsAtEnd.find((blog) => blog.id === addedBlog.id)
+    assert.strictEqual(savedBlog.likes, 0)
+  })
+  
+
 after(async () => {
   await mongoose.connection.close()
 })
