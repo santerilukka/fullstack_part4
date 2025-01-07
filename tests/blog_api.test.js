@@ -72,7 +72,7 @@ test('there are the right amount of blogs', async () => {
     const addedBlog = response.body;
     assert.strictEqual(addedBlog.likes, 0)
   
-    const blogsAtEnd = await helper.blogsInDb();
+    const blogsAtEnd = await helper.blogsInDb()
     const savedBlog = blogsAtEnd.find((blog) => blog.id === addedBlog.id)
     assert.strictEqual(savedBlog.likes, 0)
   })
@@ -83,7 +83,7 @@ test('there are the right amount of blogs', async () => {
       author: 'Missing Title',
       url: 'https://example.com/missing-title',
       likes: 5,
-    };
+    }
   
     await api
       .post('/api/blogs')
@@ -92,24 +92,55 @@ test('there are the right amount of blogs', async () => {
   
     const blogsAtEnd = await helper.blogsInDb();
     assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length);
-  });
+  })
   
   test('blog without url is not added', async () => {
     const newBlog = {
       title: 'Missing URL',
       author: 'Miss Url',
       likes: 10,
-    };
+    }
   
     await api
       .post('/api/blogs')
       .send(newBlog)
-      .expect(400);
+      .expect(400)
   
-    const blogsAtEnd = await helper.blogsInDb();
-    assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length);
-  });
+    const blogsAtEnd = await helper.blogsInDb()
+    assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length)
+  })
   
+
+test('a blog can be deleted', async () => {
+    const blogsAtStart = await helper.blogsInDb()
+    const blogToDelete = blogsAtStart[0]
+  
+    await api
+      .delete(`/api/blogs/${blogToDelete.id}`)
+      .expect(204)
+  
+    const blogsAtEnd = await helper.blogsInDb()
+    assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length - 1)
+  
+    const titles = blogsAtEnd.map((b) => b.title)
+    assert.ok(!titles.includes(blogToDelete.title))
+  })
+
+test('deleting a non-existent blog returns 404', async () => {
+    const nonExistingId = await helper.nonExistingId()
+
+    await api
+      .delete(`/:${nonExistingId}`)
+      .expect(404)
+  })
+
+test('deleting a blog with an invalid id returns 400', async () => {
+    const invalidId = '12345'
+    
+    await api
+      .delete(`/api/blogs/:${invalidId}`)
+      .expect(400)
+  })
 
 after(async () => {
   await mongoose.connection.close()
