@@ -15,7 +15,7 @@ blogsRouter.get('/', async (request, response) => {
 
 blogsRouter.delete('/:id', async (request, response) => {
     const { id } = request.params
-    
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return response.status(400).json({ error: 'Invalid ID format' })
     }
@@ -26,6 +26,27 @@ blogsRouter.delete('/:id', async (request, response) => {
     } else{
       response.status(404).end()
     }
+})
+
+blogsRouter.put('/:id', async (request, response) => {
+  const { id } = request.params
+  const body = request.body
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return response.status(400).json({ error: 'Invalid ID format' })
+}
+  const newBlog = await Blog.findByIdAndUpdate(
+    id,
+    body,
+    { new: true }
+  )
+
+    const updatedBlog = await Blog.findByIdAndUpdate(request.params.id, newBlog, { new: true, runValidators: true })
+    
+    if(!updatedBlog) {
+      return response.status(404).end()
+    }
+    response.json(updatedBlog)
 })
 
 module.exports = blogsRouter

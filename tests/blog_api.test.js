@@ -142,6 +142,57 @@ test('deleting a blog with an invalid id returns 400', async () => {
       .expect(400)
   })
 
+test('an existing blog can be updated', async () => {
+    const blogsAtStart = await helper.blogsInDb()
+    const blogToUpdate = blogsAtStart[0]
+  
+    const updatedBlog = {
+      ...blogToUpdate,
+      likes: blogToUpdate.likes + 1,
+    }
+  
+    await api
+      .put(`/api/blogs/${blogToUpdate.id}`)
+      .send(updatedBlog)
+      .expect(200)
+      .expect('Content-Type', /application\/json/)
+  
+    const blogsAtEnd = await helper.blogsInDb()
+    const updatedBlogInDb = blogsAtEnd.find((b) => b.id === blogToUpdate.id)
+    assert.deepStrictEqual(updatedBlogInDb, updatedBlog)
+    assert.strictEqual(updatedBlogInDb.likes, blogToUpdate.likes + 1)
+  })
+
+test('updating a non-existent blog returns 404', async () => {
+    const nonExistingId = await helper.nonExistingId()
+    const updatedBlog = {
+      title: 'Non-existent Blog',
+      author: 'Non-existent Author',
+      url: 'https://example.com/non-existent',
+      likes: 0,
+    }
+
+    await api
+      .put(`/api/blogs/${nonExistingId}`)
+      .send(updatedBlog)
+      .expect(404)
+  })
+
+test('updating a blog with an invalid id returns 400', async () => {
+    const invalidId = '12345'
+    const updatedBlog = {
+      title: 'Invalid ID Blog',
+      author: 'Invalid ID Author',
+      url: 'https://example.com/invalid-id',
+      likes: 0,
+    }
+
+    await api
+      .put(`/api/blogs/${invalidId}`)
+      .send(updatedBlog)
+      .expect(400)
+  })
+
 after(async () => {
   await mongoose.connection.close()
 })
