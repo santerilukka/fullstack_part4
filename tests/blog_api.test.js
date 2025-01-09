@@ -1,4 +1,4 @@
-const { test, after, beforeEach } = require('node:test')
+const { test, after, beforeEach, describe } = require('node:test')
 const assert = require('node:assert')
 const mongoose = require('mongoose')
 const supertest = require('supertest')
@@ -9,6 +9,7 @@ const Blog = require('../models/blog')
 const bcrypt = require('bcrypt')
 const User = require('../models/user')
 
+describe('when there is initially some blogs saved', () => {
 beforeEach(async () => {
     await Blog.deleteMany({})
   
@@ -36,7 +37,9 @@ test('there are the right amount of blogs', async () => {
       assert.strictEqual(blog._id, undefined)
     })
   })
+})
 
+describe('adding a blog', () => {
   test('a valid blog can be added', async () => {
     const newBlog = {
       title: 'Async/Await Simplifies Making Async Calls',
@@ -111,8 +114,9 @@ test('there are the right amount of blogs', async () => {
     const blogsAtEnd = await helper.blogsInDb()
     assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length)
   })
-  
+})
 
+describe('blog deletion', () => {
 test('a blog can be deleted', async () => {
     const blogsAtStart = await helper.blogsInDb()
     const blogToDelete = blogsAtStart[0]
@@ -143,7 +147,9 @@ test('deleting a blog with an invalid id returns 400', async () => {
       .delete(`/api/blogs/:${invalidId}`)
       .expect(400)
   })
+})
 
+describe('blog updating', () => {
 test('an existing blog can be updated', async () => {
     const blogsAtStart = await helper.blogsInDb()
     const blogToUpdate = blogsAtStart[0]
@@ -194,6 +200,7 @@ test('updating a blog with an invalid id returns 400', async () => {
       .send(updatedBlog)
       .expect(400)
   })
+})
 
 
   describe('when there is initially one user at db', () => {
@@ -251,7 +258,58 @@ test('updating a blog with an invalid id returns 400', async () => {
 
   })
 
+  describe('user creation validations', () => {
+    beforeEach(async () => {
+      await User.deleteMany({})
   
+      const passwordHash = await bcrypt.hash('sekret', 10)
+      const user = new User({ username: 'root', passwordHash })
+  
+      await user.save()
+    })
+  
+    test('creation fails if message if username is too short with proper statuscode and message', async () => {
+      const usersAtStart = await helper.usersInDb()
+  
+      const newUser = {
+        username: 'ro', // Too short username
+        name: 'Short Username',
+        password: 'validpassword',
+      }
+  
+      const result = await api
+        .post('/api/users')
+        .send(newUser)
+        .expect(400)
+        .expect('Content-Type', /application\/json/)
+  
+      assert(result.body.error.includes('is shorter than the minimum allowed length'))
+  
+      const usersAtEnd = await helper.usersInDb()
+      assert.strictEqual(usersAtEnd.length, usersAtStart.length)
+    })
+  
+    test('creation fails if password is too short with proper statuscode and message', async () => {
+      const usersAtStart = await helper.usersInDb()
+  
+      const newUser = {
+        username: 'validusername',
+        name: 'Short Password',
+        password: 'pw', // Too short password
+      }
+  
+      const result = await api
+        .post('/api/users')
+        .send(newUser)
+        .expect(400)
+        .expect('Content-Type', /application\/json/)
+  
+      assert(result.body.error.includes('password missing or too short'))
+  
+      const usersAtEnd = await helper.usersInDb()
+      assert.strictEqual(usersAtEnd.length, usersAtStart.length)
+    })
+  })
 
 after(async () => {
   await mongoose.connection.close()
