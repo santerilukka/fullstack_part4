@@ -1,0 +1,8 @@
+DELETE http://localhost:3003/api/blogs/67811d95bba5284b8ce48540
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxhZHlnYWdhIiwiaWQiOiI2NzgxMGYyOGM3YzM0Yjk4NDY0YmFjYjYiLCJpYXQiOjE3MzY1MTIwOTZ9.1ZR9CtlEt31uUTIt2Vsmb3c6h6nIfagTc3MxPZi2tAE
+
+{
+  "username": "ladygaga",
+  "userId": "67810f28c7c34b98464bacb6"
+}
