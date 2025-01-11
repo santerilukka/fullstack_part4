@@ -8,14 +8,25 @@ const helper = require('./test_helper.js')
 const Blog = require('../models/blog')
 const bcrypt = require('bcrypt')
 const User = require('../models/user')
+const jwt = require('jsonwebtoken')
 
-describe('when there is initially some blogs saved', () => {
-beforeEach(async () => {
+let token
+
+  beforeEach(async () => {
     await Blog.deleteMany({})
-  
+    await User.deleteMany({})
+
+    const passwordHash = await bcrypt.hash('sekret', 10)
+    const user = new User({ username: 'root', passwordHash, _id: '5a422a851b54a676234d17f7' })
+    await user.save()
+
+    const userForToken = { username: user.username, id: user._id }
+    token = jwt.sign(userForToken, process.env.SECRET)
+
     await Blog.insertMany(helper.initialBlogs)
   })
 
+describe('when there is initially some blogs saved', () => {
 test('blogs are returned as json', async () => {
   await api
     .get('/api/blogs')
@@ -50,6 +61,7 @@ describe('adding a blog', () => {
   
     await api
       .post('/api/blogs')
+      .set('Authorization', `Bearer ${token}`)
       .send(newBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
@@ -70,6 +82,7 @@ describe('adding a blog', () => {
   
     const response = await api
       .post('/api/blogs')
+      .set('Authorization', `Bearer ${token}`)
       .send(newBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
@@ -92,6 +105,7 @@ describe('adding a blog', () => {
   
     await api
       .post('/api/blogs')
+      .set('Authorization', `Bearer ${token}`)
       .send(newBlog)
       .expect(400);
   
@@ -108,9 +122,27 @@ describe('adding a blog', () => {
   
     await api
       .post('/api/blogs')
+      .set('Authorization', `Bearer ${token}`)
       .send(newBlog)
       .expect(400)
   
+    const blogsAtEnd = await helper.blogsInDb()
+    assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length)
+  })
+
+  test('adding a blog fails with status code 401 if token is not provided', async () => {
+    const newBlog = {
+      title: 'Unauthorized Blog',
+      author: 'No Token',
+      url: 'https://example.com/no-token',
+      likes: 0,
+    }
+
+    await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(401)
+
     const blogsAtEnd = await helper.blogsInDb()
     assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length)
   })
@@ -123,10 +155,11 @@ test('a blog can be deleted', async () => {
   
     await api
       .delete(`/api/blogs/${blogToDelete.id}`)
+      .set('Authorization', `Bearer ${token}`)
       .expect(204)
   
     const blogsAtEnd = await helper.blogsInDb()
-    assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length - 1)
+    assert.strictEqual(blogsAtEnd.length, blogsAtStart.length - 1)
   
     const titles = blogsAtEnd.map((b) => b.title)
     assert.ok(!titles.includes(blogToDelete.title))
@@ -137,6 +170,7 @@ test('deleting a non-existent blog returns 404', async () => {
 
     await api
       .delete(`/:${nonExistingId}`)
+      .set('Authorization', `Bearer ${token}`)
       .expect(404)
   })
 
@@ -145,6 +179,7 @@ test('deleting a blog with an invalid id returns 400', async () => {
     
     await api
       .delete(`/api/blogs/:${invalidId}`)
+      .set('Authorization', `Bearer ${token}`)
       .expect(400)
   })
 })
@@ -161,6 +196,7 @@ test('an existing blog can be updated', async () => {
   
     await api
       .put(`/api/blogs/${blogToUpdate.id}`)
+      .set('Authorization', `Bearer ${token}`)
       .send(updatedBlog)
       .expect(200)
       .expect('Content-Type', /application\/json/)
@@ -182,6 +218,7 @@ test('updating a non-existent blog returns 404', async () => {
 
     await api
       .put(`/api/blogs/${nonExistingId}`)
+      .set('Authorization', `Bearer ${token}`)
       .send(updatedBlog)
       .expect(404)
   })
@@ -197,6 +234,7 @@ test('updating a blog with an invalid id returns 400', async () => {
 
     await api
       .put(`/api/blogs/${invalidId}`)
+      .set('Authorization', `Bearer ${token}`)
       .send(updatedBlog)
       .expect(400)
   })
